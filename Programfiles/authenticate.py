@@ -1,8 +1,9 @@
 import hashlib
 from flask import Flask, request,jsonify
 import jwt
-token_id = {}
-email_id = token_id.keys()
+token_id = {}    
+# existing_user = next((user for user in token_id.values() if user['email'] == email), None)
+
 app = Flask(__name__)
 
 def generate_secret_key(*inputs):
@@ -12,6 +13,7 @@ def generate_secret_key(*inputs):
 
 @app.route('/Signup',methods = ['POST'])
 def sign_up():
+    user_key = f"USER{len(token_id)+1}"
     name = request.form.get("name")
     email = request.form.get("email")
     role = request.form.get("role")
@@ -22,9 +24,15 @@ def sign_up():
         "email": email,
         "role": role,
     }
+    if any(user['email'] == email for user in token_id.values()):
+        return jsonify({"Message":"User Already registered"})
     token = jwt.encode(payload,SECRET_KEY,algorithm='HS256')
-    token_id[email] = token
-    return jsonify({"Message": "Successfull Sign IN"})
+    token_id[user_key] = {
+            "email": email,
+            "token": token,
+            "set_flag": False
+        }
+    return jsonify({"Message": f"Successfull Sign IN{token_id}"})
 
 
 
@@ -32,25 +40,43 @@ def sign_up():
 def log_in():
     email = request.form.get("email")
     Password = request.form.get("Password")
-    SECRET_KEY = generate_secret_key(email, Password)
+    SECRET_KEY = generate_secret_key(email, Password)  
 
-    # Ensure both email and password are provided
     if not email or not Password:
-        return jsonify({"Error": "Please enter your login credentials."})
+        return jsonify({"Error": "Please enter your login credentials."}), 400
 
-    # Check if the email is valid
-    if email in token_id:
-        token = token_id[email]
-        token_1 = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-
-        # Check if the decoded token matches the email
-        if email == token_1.get("email"):
-            return jsonify({"Accepted": "Welcome user"})
-        else:
-            return jsonify({"Fail": "Invalid User"})
+    existing_user = next((user for user in token_id.values() if user['email'] == email), None)
     
-    # If email is not found
-    return jsonify({"Fail": "Invalid User"})
+    if existing_user:
+        token = existing_user['token']
+        
+        
+        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            
+        if decoded_token.get("email") == email:
+            existing_user['set_flag'] = True
+            return jsonify({"Accepted": "Welcome user"}), 200
+        else:
+            return jsonify({"Fail": "Invalid User"}), 401
+    else:
+        return jsonify({"Error": "Email not registered."}), 404
+
+
+@app.route('/message', methods=['GET'])
+def response():
+    # Check if any user in token_id has set_flag as True
+    flagged_user = next((user for user in token_id.values() if user['set_flag']), None)
+    
+    if flagged_user:
+        # If a flagged user is found, display the response message
+        return jsonify({"response": "xyz"}), 200
+    else:
+        # If no user has set_flag as True
+        return jsonify({"message": "No flagged user found."}), 404
+    
+@app.route('/')
+def home():
+    return jsonify({"Beta Yasu Yasu":"Lord Jessus"})
     
 if __name__ == '__main__':
     app.run(debug=True,ssl_context='adhoc',port=5001)
