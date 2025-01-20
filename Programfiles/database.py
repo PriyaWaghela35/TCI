@@ -1,32 +1,61 @@
-from flask import Flask, jsonify, request
-import pymysql
+from flask import Flask, jsonify, request # type: ignore
+import mysql.connector # type: ignore
+from mysql.connector import errorcode # type: ignore
+
 app = Flask(__name__)
 
-con = pymysql.connect(
+# Establish connection without specifying the database to create it if it doesn't exist
+con = mysql.connector.connect(
     host='127.0.0.1',
-    user = 'root',
-    password ='Apjb@1389',
-    database = 'TestDB'
-    )
+    user='root',
+    password='Apjb@1389'
+)
 
-@app.route('/getTable',methods=['GET'])
+# Create the database if it doesn't exist
+def create_database_if_not_exists():
+    cursor = con.cursor()
+    try:
+        cursor.execute("CREATE DATABASE IF NOT EXISTS TestDB;")
+        con.commit()
+        print("Database created or already exists.")
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        cursor.close()
+
+# Call the function to ensure the database exists
+create_database_if_not_exists()
+
+# Now connect to the specific database
+con = mysql.connector.connect(
+    host='127.0.0.1',
+    user='root',
+    password='Apjb@1389',
+    database='TestDB'
+)
+
+@app.route('/getTable', methods=['GET'])
 def get_Table():
-    cur=con.cursor()
+    cur = con.cursor()
     cur.execute("SHOW TABLES;")
     tables = cur.fetchall()
     cur.close()
-    table_names=[table[0] for table in tables]
-    return jsonify({"Table":table_names})
+    table_names = [table[0] for table in tables]
+    return jsonify({"Table": table_names})
 
-@app.route("/create",methods=["POST"])
+@app.route("/create", methods=["POST"])
 def create_tables():
-    query = "CREATE table IF NOT EXISTS employee (empid INT primary key,name varchar(100) not null,email_id varchar(100),job_role varchar(100));"
+    query = """CREATE table IF NOT EXISTS employee (
+                empid INT primary key,
+                name varchar(100) not null,
+                email_id varchar(100),
+                job_role varchar(100)
+                );"""
     cur = con.cursor()
     cur.execute(query)
     con.commit()
     cur.close()
-    return jsonify({"Message":"Table created successfully"})
-
+    return jsonify({"Message": "Table created successfully"})
 
 @app.route("/update", methods=["POST"])
 def update_tables():
@@ -47,21 +76,20 @@ def update_tables():
     except Exception as e:
         return jsonify({"Error": str(e)}), 500
 
-@app.route("/delete",methods=["POST"])
+@app.route("/delete", methods=["POST"])
 def delete_tables():
     empid = request.form.get("empid")  # Employee ID
-    if not (empid):
-        return jsonify({"Error": "Please provide 'empid', 'column', and 'value'"}), 400
+    if not empid:
+        return jsonify({"Error": "Please provide 'empid'"}), 400
     
-    query = f"delete from employee where empid = %s;"
+    query = f"DELETE FROM employee WHERE empid = %s;"
     cur = con.cursor()
-    cur.execute(query,(empid))
+    cur.execute(query, (empid,))
     con.commit()
     cur.close()
-    return jsonify({"Message":"Value is deleted successfully"})
+    return jsonify({"Message": "Value is deleted successfully"})
 
-
-@app.route("/read",methods=['POST'])
+@app.route("/read", methods=['POST'])
 def read_table():
     table_name = request.form.get("table")  # Get the table name from query parameters
     
@@ -83,18 +111,16 @@ def read_table():
     except Exception as e:
         return jsonify({"Error": str(e)}), 500
 
-
-@app.route("/alter",methods=["GET"])
+@app.route("/alter", methods=["GET"])
 def alter_tables():
-    query = "alter table employee add column contact bigint;"
+    query = "ALTER TABLE employee ADD COLUMN contact BIGINT;"
     cur = con.cursor()
     cur.execute(query)
     con.commit()
     cur.close()
-    return jsonify({"Message":"Table altered successfully"})
+    return jsonify({"Message": "Table altered successfully"})
 
-
-@app.route("/insert",methods=["GET"])
+@app.route("/insert", methods=["GET"])
 def insert_tables():
     query = """
     INSERT INTO employee (empid, name, email_id, job_role)
@@ -107,27 +133,20 @@ def insert_tables():
     cur.execute(query)
     con.commit()
     cur.close()
-    return jsonify({"Message":"Value inserted in table successfully"})
+    return jsonify({"Message": "Values inserted in table successfully"})
 
-
-
-
-@app.route("/drop",methods=["GET"])
+@app.route("/drop", methods=["GET"])
 def drop_tables():
-    query1 = """DROP TABLE employee"""
+    query1 = """DROP TABLE IF EXISTS employee"""
     cur = con.cursor()
     cur.execute(query1)
     con.commit()
     cur.close()
-    return jsonify({"Message":"Table is deleted successfully"})
-
-
-
+    return jsonify({"Message": "Table is deleted successfully"})
 
 @app.route('/')
 def home():
-    return "Welcome the my Database!!!!!!!!!!!!!!!"
-
+    return "Welcome to my Database!!!!"
 
 if __name__ == "__main__":
-    app.run(debug=True,port=2000)
+    app.run(debug=True, port=2000)

@@ -64,20 +64,27 @@ def log_in():
 
 @app.route('/message', methods=['GET'])
 def response():
-    # Check if any user in token_id has set_flag as True
     flagged_user = next((user for user in token_id.values() if user['set_flag']), None)
     
     if flagged_user:
-        # If a flagged user is found, display the response message
         return jsonify({"response": "xyz"}), 200
     else:
-        # If no user has set_flag as True
+        return jsonify({"message": "No flagged user found."}), 404
+    
+@app.route('/logout', methods=['GET'])
+def log_out():
+    flagged_user = next((user for user in token_id.values() if user['set_flag']), None)
+    
+    if flagged_user:
+        flagged_user['set_flag'] = False
+        return jsonify({"response": "Log-out succesful"}), 200
+    else:
         return jsonify({"message": "No flagged user found."}), 404
     
 @app.route('/')
 def home():
-    return jsonify({"Beta Yasu Yasu":"Lord Jessus"})
+    return jsonify({"Welcome":"Login/Signup"})
     
 if __name__ == '__main__':
-    app.run(debug=True,ssl_context='adhoc',port=5001)
+    app.run(debug=True)
     
