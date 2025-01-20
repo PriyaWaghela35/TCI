@@ -1,0 +1,14 @@
+2025-01-20 06:43:19,758 - INFO - Sending GET request to: https://api.bseindia.com/BseIndiaAPI/api/AnnSubCategoryGetData/w?pageno=1&strCat=AGM%2FEGM&strPrevDate=20241017&strScrip=540005&strSearch=P&strToDate=20250117&strType=C&subcategory=AGM
+2025-01-20 06:43:19,759 - DEBUG - Starting new HTTPS connection (1): api.bseindia.com:443
+2025-01-20 06:43:19,781 - DEBUG - https://api.bseindia.com:443 "GET /BseIndiaAPI/api/AnnSubCategoryGetData/w?pageno=1&strCat=AGM%2FEGM&strPrevDate=20241017&strScrip=540005&strSearch=P&strToDate=20250117&strType=C&subcategory=AGM HTTP/1.1" 200 50
+2025-01-20 06:43:19,782 - INFO - Request successful. Status Code: 200
+2025-01-20 06:43:19,782 - DEBUG - Response JSON data successfully parsed.
+2025-01-20 06:43:19,782 - DEBUG - Preview Data: {
+    "Table": [],
+    "Table1": [
+        {
+            "ROWCNT": 0
+        }
+    ]
+}...
+2025-01-20 06:43:19,782 - INFO - Preview data has been saved to 'preview_output.json'

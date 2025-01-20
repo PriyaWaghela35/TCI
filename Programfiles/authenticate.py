@@ -1,11 +1,11 @@
 import hashlib
-from flask import Flask, request,jsonify
+from flask import Flask, request,jsonify,session,redirect,url_for
 import jwt
+import os
 token_id = {}    
-# existing_user = next((user for user in token_id.values() if user['email'] == email), None)
 
 app = Flask(__name__)
-
+app.secret_key = os.urandom(42)
 def generate_secret_key(*inputs):
     combined_input = ''.join(map(str, inputs))
     hashed_key = hashlib.sha256(combined_input.encode()).hexdigest()
@@ -36,50 +36,35 @@ def sign_up():
 
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'GET'])
 def log_in():
-    email = request.form.get("email")
-    Password = request.form.get("Password")
-    SECRET_KEY = generate_secret_key(email, Password)  
+    if request.method == 'POST':
+        email = request.form.get("email")
+        Password = request.form.get("Password")
+        SECRET_KEY = generate_secret_key(email, Password)
 
-    if not email or not Password:
-        return jsonify({"Error": "Please enter your login credentials."}), 400
+        if not email or not Password:
+            return jsonify({"Error": "Please enter your login credentials."}), 400
 
-    existing_user = next((user for user in token_id.values() if user['email'] == email), None)
-    
-    if existing_user:
-        token = existing_user['token']
-        
-        
-        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-            
-        if decoded_token.get("email") == email:
-            existing_user['set_flag'] = True
-            return jsonify({"Accepted": "Welcome user"}), 200
+        existing_user = next((user for user in token_id.values() if user['email'] == email), None)
+
+        if existing_user:
+            token = existing_user['token']
+            decoded_token = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+            if decoded_token.get("email") == email:
+                session['email'] = email
+                return redirect(url_for('response')), 200
+            else:
+                return jsonify({"Fail": "Invalid User"}), 401
         else:
-            return jsonify({"Fail": "Invalid User"}), 401
-    else:
-        return jsonify({"Error": "Email not registered."}), 404
-
+            return jsonify({"Error": "Email not registered."}), 404
 
 @app.route('/message', methods=['GET'])
 def response():
-    flagged_user = next((user for user in token_id.values() if user['set_flag']), None)
-    
-    if flagged_user:
-        return jsonify({"response": "xyz"}), 200
-    else:
-        return jsonify({"message": "No flagged user found."}), 404
-    
-@app.route('/logout', methods=['GET'])
-def log_out():
-    flagged_user = next((user for user in token_id.values() if user['set_flag']), None)
-    
-    if flagged_user:
-        flagged_user['set_flag'] = False
-        return jsonify({"response": "Log-out succesful"}), 200
-    else:
-        return jsonify({"message": "No flagged user found."}), 404
+    if 'email' in session:  # Check if user is logged in
+        return f'Hello, {session["email"]}! You are logged in.'
+    return 'You are not logged in!'
     
 @app.route('/')
 def home():
@@ -88,3 +73,8 @@ def home():
 if __name__ == '__main__':
     app.run(debug=True)
     
+
+
+'''if 'username' in session:  # Check if user is logged in
+        return f'Hello, {session["username"]}! You are logged in.'
+    return 'You are not logged in!'''
